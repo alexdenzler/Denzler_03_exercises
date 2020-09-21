@@ -174,32 +174,74 @@ garden_harvest2 <- garden_harvest %>%
 
 ```r
 garden_harvest3 <- garden_harvest %>% 
-  group_by(vegetable) %>% 
+  group_by(vegetable, variety) %>% 
   summarize(weightLBs = sum(weight*0.00220462)) %>% 
   left_join(plant_date_loc, 
-            by = "vegetable") %>% 
+            by = c("vegetable", "variety")) %>% 
   select(vegetable, weightLBs, plot, variety)
 ```
 
 ```
-## `summarise()` ungrouping output (override with `.groups` argument)
+## `summarise()` regrouping output by 'vegetable' (override with `.groups` argument)
 ```
 
   - The main issue with using the join is that the data becomes slightly ungrouped. 
 
   3. I would like to understand how much money I "saved" by gardening, for each vegetable type. Describe how I could use the `garden_harvest` and `supply_cost` datasets, along with data from somewhere like [this](https://products.wholefoodsmarket.com/search?sort=relevance&store=10542) to answer this question. You can answer this in words, referencing various join functions. You don't need R code but could provide some if it's helpful.
+  
+  - We could add a variable to `garden_harvest` that prices the seed mix that is used, aka "variety_price". Then, we can use a left join by vegetable and select only the price of that vegetable and multiply that by the vegetable's weight in pounds. Next, we could left join `garden_harvest` and `supply_costs` by variety. Finally, we could create a variable called money_saved which would subtract the price of the seed from the `price_with_tax` variable.
 
   4. Subset the data to tomatoes. Reorder the tomato varieties from smallest to largest first harvest date. Create a barplot of total harvest in pounds for each variety, in the new order.
 
 
+```r
+garden_harvestT <- garden_harvest %>% 
+  filter(vegetable == "tomatoes") %>% 
+  mutate(variety = fct_reorder(variety, date)) %>% 
+  group_by(variety) %>% 
+  summarize(date, weightLBs = sum(weight*0.00220462))
+```
+
+```
+## `summarise()` regrouping output by 'variety' (override with `.groups` argument)
+```
+
+```r
+garden_harvestT %>% 
+  ggplot(aes(y = variety)) + 
+    geom_bar(fill = "red") + 
+    labs(title = "Total Harvest (LBs) in Order of Smallest to Largest Harvest Date",
+         x = "Total Harvest (LBs)",
+         y = "Variety")
+```
+
+![](Denzler_03_exercises_files/figure-html/unnamed-chunk-3-1.png)<!-- -->
 
   5. In the `garden_harvest` data, create two new variables: one that makes the varieties lowercase and another that finds the length of the variety name. Arrange the data by vegetable and length of variety name (smallest to largest), with one row for each vegetable variety. HINT: use `str_to_lower()`, `str_length()`, and `distinct()`.
   
 
+```r
+garden_harvest4 <- garden_harvest %>% 
+  mutate(lowVariety = str_to_lower(variety), lowVarLen = str_length(lowVariety)) %>% 
+  distinct(vegetable, variety, lowVarLen) 
+```
 
   6. In the `garden_harvest` data, find all distinct vegetable varieties that have "er" or "ar" in their name. HINT: `str_detect()` with an "or" statement (use the | for "or") and `distinct()`.
 
 
+```r
+garden_harvest5 <- garden_harvest %>% 
+  mutate(hasERAR = str_detect(variety, "ar") | str_detect(variety, "er")) %>% 
+  distinct(variety, hasERAR)
+
+garden_harvest5
+```
+
+<div data-pagedtable="false">
+  <script data-pagedtable-source type="application/json">
+{"columns":[{"label":["variety"],"name":[1],"type":["chr"],"align":["left"]},{"label":["hasERAR"],"name":[2],"type":["lgl"],"align":["right"]}],"data":[{"1":"reseed","2":"FALSE"},{"1":"Garden Party Mix","2":"TRUE"},{"1":"Farmer's Market Blend","2":"TRUE"},{"1":"Catalina","2":"FALSE"},{"1":"leaves","2":"FALSE"},{"1":"Heirloom Lacinto","2":"FALSE"},{"1":"Magnolia Blossom","2":"FALSE"},{"1":"Super Sugar Snap","2":"TRUE"},{"1":"perrenial","2":"TRUE"},{"1":"Tatsoi","2":"FALSE"},{"1":"asparagus","2":"TRUE"},{"1":"Neon Glow","2":"FALSE"},{"1":"cilantro","2":"FALSE"},{"1":"Isle of Naxos","2":"FALSE"},{"1":"mustard greens","2":"TRUE"},{"1":"Romanesco","2":"FALSE"},{"1":"Bush Bush Slender","2":"TRUE"},{"1":"Gourmet Golden","2":"FALSE"},{"1":"Sweet Merlin","2":"TRUE"},{"1":"pickling","2":"FALSE"},{"1":"grape","2":"FALSE"},{"1":"Delicious Duo","2":"FALSE"},{"1":"giant","2":"FALSE"},{"1":"thai","2":"FALSE"},{"1":"variety","2":"TRUE"},{"1":"Long Keeping Rainbow","2":"FALSE"},{"1":"Big Beef","2":"FALSE"},{"1":"Bonny Best","2":"FALSE"},{"1":"Lettuce Mixture","2":"FALSE"},{"1":"King Midas","2":"FALSE"},{"1":"Cherokee Purple","2":"TRUE"},{"1":"Better Boy","2":"TRUE"},{"1":"Dragon","2":"FALSE"},{"1":"Amish Paste","2":"FALSE"},{"1":"Mortgage Lifter","2":"TRUE"},{"1":"Yod Fah","2":"FALSE"},{"1":"Old German","2":"TRUE"},{"1":"Jet Star","2":"TRUE"},{"1":"Bolero","2":"TRUE"},{"1":"Brandywine","2":"FALSE"},{"1":"Black Krim","2":"FALSE"},{"1":"volunteers","2":"TRUE"},{"1":"green","2":"FALSE"},{"1":"Classic Slenderette","2":"TRUE"},{"1":"purple","2":"FALSE"},{"1":"yellow","2":"FALSE"},{"1":"Chinese Red Noodle","2":"FALSE"},{"1":"edamame","2":"FALSE"},{"1":"Dorinny Sweet","2":"FALSE"},{"1":"Golden Bantam","2":"FALSE"},{"1":"greens","2":"FALSE"},{"1":"saved","2":"FALSE"},{"1":"Blue (saved)","2":"FALSE"},{"1":"Cinderella's Carraige","2":"TRUE"},{"1":"Main Crop Bravado","2":"FALSE"},{"1":"Russet","2":"FALSE"},{"1":"Crispy Colors Duo","2":"FALSE"},{"1":"delicata","2":"FALSE"},{"1":"Waltham Butternut","2":"TRUE"},{"1":"Red Kuri","2":"FALSE"},{"1":"New England Sugar","2":"TRUE"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
+  </script>
+</div>
 
 
 ## Bicycle-Use Patterns
@@ -225,7 +267,7 @@ Here is the code to read in the data. We do this a little differently than usual
 
 ```r
 data_site <- 
-  "https://www.macalester.edu/~dshuman1/data/112/2014-Q4-Trips-History-Data-Small.rds" 
+  "https://www.macalester.edu/~dshuman1/data/112/2014-Q4-Trips-History-Data.rds" 
 Trips <- readRDS(gzcon(url(data_site)))
 Stations<-read_csv("http://www.macalester.edu/~dshuman1/data/112/DC-Stations.csv")
 ```
@@ -250,36 +292,164 @@ It's natural to expect that bikes are rented more at some times of day, some day
   7. A density plot, which is a smoothed out histogram, of the events versus `sdate`. Use `geom_density()`.
   
 
+```r
+Trips %>% 
+  ggplot(aes(x = sdate)) + 
+  geom_density(color = "blue", fill = "lightblue") +
+  labs(title = "Distribution of Rides over Three Months",
+       x = "Date",
+       y = "Ride Distribution")
+```
+
+![](Denzler_03_exercises_files/figure-html/unnamed-chunk-7-1.png)<!-- -->
+  
+  - This density plot shows the distribution of rides over October, November, and December. What we see here is that the majority of rides happened throughout october, with a steep decline from the beginning to the middle of November. It eventually levels off for the first half of December and then declines again. 
   
   8. A density plot of the events versus time of day.  You can use `mutate()` with `lubridate`'s  `hour()` and `minute()` functions to extract the hour of the day and minute within the hour from `sdate`. Hint: A minute is 1/60 of an hour, so create a variable where 3:30 is 3.5 and 3:45 is 3.75.
   
 
+```r
+Trips2 <- Trips %>% 
+  mutate(timeOfDay = hour(sdate) + (minute(sdate))/60)
+
+Trips2 %>% 
+  ggplot(aes(x = timeOfDay)) + 
+  geom_density(color = "black", fill = "yellow") + 
+  labs(title = "Density of Rides by Hour of the Day",
+       x = "Hour of the Day",
+       y = "Density")
+```
+
+![](Denzler_03_exercises_files/figure-html/unnamed-chunk-8-1.png)<!-- -->
+  
+  - This plot shows that the majority of rides come at around 8 am and 5 pm, which makes sense because that is the beginning and the end of the work day. There is also a slight bump at 12 pm, which is probably due to people starting rides to go get lunch.
   
   9. A bar graph of the events versus day of the week. Put day on the y-axis.
   
 
+```r
+Trips2 <- Trips2 %>%
+  mutate(day = wday(sdate, label = TRUE))
+
+Trips2 %>% 
+  ggplot(aes(y = day)) +
+  geom_bar(fill = "orange") + 
+  labs(title = "Number of Rides by Day of the Week",
+       x = "Number of Rides",
+       y = "Day")
+```
+
+![](Denzler_03_exercises_files/figure-html/unnamed-chunk-9-1.png)<!-- -->
   
   10. Facet your graph from exercise 8. by day of the week. Is there a pattern?
   
 
+```r
+Trips2 %>% 
+  ggplot(aes(x = timeOfDay)) + 
+  geom_density(color = "black", fill = "yellow") + 
+  facet_wrap(~day) +
+  labs(title = "Density of Rides by Hour of the Day, Faceted by Day of the Week",
+       x = "Hour of the Day",
+       y = "Density")
+```
+
+![](Denzler_03_exercises_files/figure-html/unnamed-chunk-10-1.png)<!-- -->
+  
+  - The trend for the weekdays are all basically the same, while the two weekend days are the same as each other. 
   
 The variable `client` describes whether the renter is a regular user (level `Registered`) or has not joined the bike-rental organization (`Causal`). The next set of exercises investigate whether these two different categories of users show different rental behavior and how `client` interacts with the patterns you found in the previous exercises. Repeat the graphic from Exercise \@ref(exr:exr-temp) (d) with the following changes:
 
   11. Change the graph from exercise 10 to set the `fill` aesthetic for `geom_density()` to the `client` variable. You should also set `alpha = .5` for transparency and `color=NA` to suppress the outline of the density function.
   
 
+```r
+Trips2 %>% 
+  ggplot(aes(x = timeOfDay, fill = client)) + 
+  geom_density(color = NA, alpha = .5) + 
+  facet_wrap(~day) +
+  labs(title = "Density of Rides by Hour of the Day, Faceted by Day of the Week",
+       x = "Hour of the Day",
+       y = "Density")
+```
+
+![](Denzler_03_exercises_files/figure-html/unnamed-chunk-11-1.png)<!-- -->
+  
+  - Here, we can see that the registered riders are the ones who most likely bike to work/school every weekday at the same time. Meanwhile, the causual rider usually takes a bike out for an afternoon ride.
 
   12. Change the previous graph by adding the argument `position = position_stack()` to `geom_density()`. In your opinion, is this better or worse in terms of telling a story? What are the advantages/disadvantages of each?
   
 
+```r
+Trips2 %>% 
+  ggplot(aes(x = timeOfDay, fill = client)) + 
+  geom_density(color = NA, alpha = .5, position = position_stack()) + 
+  facet_wrap(~day) +
+  labs(title = "Density of Rides by Hour of the Day, Faceted by Day of the Week",
+       x = "Hour of the Day",
+       y = "Density")
+```
+
+![](Denzler_03_exercises_files/figure-html/unnamed-chunk-12-1.png)<!-- -->
+  
+  -  
   
   13. Add a new variable to the dataset called `weekend` which will be "weekend" if the day is Saturday or Sunday and  "weekday" otherwise (HINT: use the `ifelse()` function and the `wday()` function from `lubridate`). Then, update the graph from the previous problem by faceting on the new `weekend` variable. 
   
 
+```r
+Trips2 <- Trips2 %>% 
+  mutate(weekend = ifelse(day == c("Sat", "Sun"), "weekend", "weekday"))
+```
+
+```
+## Warning: Problem with `mutate()` input `weekend`.
+## ℹ longer object length is not a multiple of shorter object length
+## ℹ Input `weekend` is `ifelse(day == c("Sat", "Sun"), "weekend", "weekday")`.
+```
+
+```
+## Warning in `==.default`(day, c("Sat", "Sun")): longer object length is not a
+## multiple of shorter object length
+```
+
+```
+## Warning: Problem with `mutate()` input `weekend`.
+## ℹ longer object length is not a multiple of shorter object length
+## ℹ Input `weekend` is `ifelse(day == c("Sat", "Sun"), "weekend", "weekday")`.
+```
+
+```
+## Warning in is.na(e1) | is.na(e2): longer object length is not a multiple of
+## shorter object length
+```
+
+```r
+Trips2 %>% 
+  ggplot(aes(x = timeOfDay, fill = client)) + 
+  geom_density(color = NA, alpha = .5, position = position_stack()) + 
+  facet_wrap(~weekend) +
+  labs(title = "Density of Rides by Hour of the Day, Faceted by Day of the Week",
+       x = "Hour of the Day",
+       y = "Density")
+```
+
+![](Denzler_03_exercises_files/figure-html/unnamed-chunk-13-1.png)<!-- -->
   
   14. Change the graph from the previous problem to facet on `client` and fill with `weekday`. What information does this graph tell you that the previous didn't? Is one graph better than the other?
   
 
+```r
+Trips2 %>% 
+  ggplot(aes(x = timeOfDay, fill = weekend)) + 
+  geom_density(color = NA, alpha = .5, position = position_stack()) + 
+  facet_wrap(~client) +
+  labs(title = "Density of Rides by Hour of the Day, Faceted by Day of the Week",
+       x = "Hour of the Day",
+       y = "Density")
+```
+
+![](Denzler_03_exercises_files/figure-html/unnamed-chunk-14-1.png)<!-- -->
   
 ### Spatial patterns
 
