@@ -256,12 +256,12 @@ Trips2 %>%
   ggplot(aes(x = timeOfDay, fill = client)) + 
   geom_density(color = NA, alpha = .5, position = position_stack()) + 
   facet_wrap(~day) +
-  labs(title = "Density of Rides by Hour of the Day, Faceted by Day of the Week",
+  labs(title = "Density of Rides by Hour per Client Type, Faceted by Day of the Week",
        x = "Hour of the Day",
        y = "Density")
 ```
   
-  -  
+  -  area under both combined is 1, showing distribution of hour for casual and registered combined, reflecting proportion of registered and casual
   
   13. Add a new variable to the dataset called `weekend` which will be "weekend" if the day is Saturday or Sunday and  "weekday" otherwise (HINT: use the `ifelse()` function and the `wday()` function from `lubridate`). Then, update the graph from the previous problem by faceting on the new `weekend` variable. 
   
@@ -295,8 +295,15 @@ Trips2 %>%
   15. Use the latitude and longitude variables in `Stations` to make a visualization of the total number of departures from each station in the `Trips` data. Use either color or size to show the variation in number of departures. We will improve this plot next week when we learn about maps!
   
 ```{r}
+Trips3 <- Trips %>% 
+  rename(name = sstation)
 
+left_join(Trips3, Stations, by = "name") #%>% 
+  #ggplot(aes(x = lat, y = long)) +
+   # geom_jitter(color = name)
 ```
+  
+  join stations and trips to have lat and lon for each trip, summarize by lat and lon, color/size by number of departures
   
   16. Only 14.4% of the trips in our data are carried out by casual users. Create a plot that shows which area(s) have stations with a much higher percentage of departures by casual users. What patterns do you notice? (Again, we'll improve this next week when we learn about maps).
   
