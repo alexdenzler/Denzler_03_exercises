@@ -375,6 +375,7 @@ Trips3 %>%
 ```
 
 ![](Denzler_03_exercises_files/figure-html/unnamed-chunk-15-1.png)<!-- -->
+            
   
   16. Only 14.4% of the trips in our data are carried out by casual users. Create a plot that shows which area(s) have stations with a much higher percentage of departures by casual users. What patterns do you notice? (Again, we'll improve this next week when we learn about maps).
   
