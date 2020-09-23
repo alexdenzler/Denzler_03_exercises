@@ -362,21 +362,22 @@ Trips4 %>%
 ```
   
   19. Build on the code from the previous problem (ie. copy that code below and then %>% into the next step.) and group the trips by client type and day of the week (use the name, not the number). Find the proportion of trips by day within each client type (ie. the proportions for all 7 days within each client type add up to 1). Display your results so day of week is a column and there is a column for each client type. Interpret your results.
-  
+
 ```{r}
-Trips4 %>% 
-  mutate(sdate = as_date(date)) %>% 
-  left_join(Trips, 
-            by = "sdate") %>% 
-  mutate(dayOfWeek = wday(sdate, label = TRUE)) %>% 
-  group_by(client, dayOfWeek) %>% 
-  summarize(numRiders = n()) %>% 
-  mutate(totalProp = numRiders/sum(numRiders)) %>% 
-  pivot_wider(id_cols = dayOfWeek, 
+Trips %>%
+  mutate(date = as_date(sdate)) %>%
+  inner_join(Trips4,
+             by = c("sstation", "date")) %>%
+  mutate(days_of_week = wday(sdate, label = TRUE)) %>%
+  group_by(client, days_of_week) %>%
+  summarize(number_riders = n()) %>%
+  mutate(total_prop = number_riders/sum(number_riders)) %>%
+  pivot_wider(id_cols = days_of_week,
               names_from = client,
-              values_from = totalProp)
+              values_from = total_prop)
 ```
 
+  - The registered rider rides more often than the casual rider on every day except for Saturday. 
 
 **DID YOU REMEMBER TO GO BACK AND CHANGE THIS SET OF EXERCISES TO THE LARGER DATASET? IF NOT, DO THAT NOW.**
 

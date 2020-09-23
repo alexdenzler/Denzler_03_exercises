@@ -438,28 +438,29 @@ Trips4 %>%
 </div>
   
   19. Build on the code from the previous problem (ie. copy that code below and then %>% into the next step.) and group the trips by client type and day of the week (use the name, not the number). Find the proportion of trips by day within each client type (ie. the proportions for all 7 days within each client type add up to 1). Display your results so day of week is a column and there is a column for each client type. Interpret your results.
-  
+
 
 ```r
-Trips4 %>% 
-  mutate(sdate = as_date(date)) %>% 
-  left_join(Trips, 
-            by = "sdate") %>% 
-  mutate(dayOfWeek = wday(sdate, label = TRUE)) %>% 
-  group_by(client, dayOfWeek) %>% 
-  summarize(numRiders = n()) %>% 
-  mutate(totalProp = numRiders/sum(numRiders)) %>% 
-  pivot_wider(id_cols = dayOfWeek, 
+Trips %>%
+  mutate(date = as_date(sdate)) %>%
+  inner_join(Trips4,
+             by = c("sstation", "date")) %>%
+  mutate(days_of_week = wday(sdate, label = TRUE)) %>%
+  group_by(client, days_of_week) %>%
+  summarize(number_riders = n()) %>%
+  mutate(total_prop = number_riders/sum(number_riders)) %>%
+  pivot_wider(id_cols = days_of_week,
               names_from = client,
-              values_from = totalProp)
+              values_from = total_prop)
 ```
 
 <div data-pagedtable="false">
   <script data-pagedtable-source type="application/json">
-{"columns":[{"label":["dayOfWeek"],"name":[1],"type":["ord"],"align":["right"]},{"label":["Casual"],"name":[2],"type":["dbl"],"align":["right"]},{"label":["Registered"],"name":[3],"type":["dbl"],"align":["right"]},{"label":["NA"],"name":[4],"type":["dbl"],"align":["right"]}],"data":[{"1":"Sun","2":"0.5","3":"0.29629630","4":"NA"},{"1":"Sat","2":"0.5","3":"0.33333333","4":"NA"},{"1":"Mon","2":"NA","3":"0.03703704","4":"NA"},{"1":"Tue","2":"NA","3":"0.11111111","4":"NA"},{"1":"Wed","2":"NA","3":"0.07407407","4":"NA"},{"1":"Thu","2":"NA","3":"0.14814815","4":"1"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
+{"columns":[{"label":["days_of_week"],"name":[1],"type":["ord"],"align":["right"]},{"label":["Casual"],"name":[2],"type":["dbl"],"align":["right"]},{"label":["Registered"],"name":[3],"type":["dbl"],"align":["right"]}],"data":[{"1":"Sun","2":"0.36132316","3":"0.0591427"},{"1":"Mon","2":"0.02035623","3":"0.1698318"},{"1":"Tue","2":"0.01717557","3":"0.1660336"},{"1":"Wed","2":"0.01081425","3":"0.1654910"},{"1":"Thu","2":"0.02735369","3":"0.3353228"},{"1":"Sat","2":"0.56297710","3":"0.1041780"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
   </script>
 </div>
 
+  - The registered rider rides more often than the casual rider on every day except for Saturday. 
 
 **DID YOU REMEMBER TO GO BACK AND CHANGE THIS SET OF EXERCISES TO THE LARGER DATASET? IF NOT, DO THAT NOW.**
 
