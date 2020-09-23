@@ -12,7 +12,7 @@ output:
 
 
 ```{r setup, include=FALSE}
-#knitr::opts_chunk$set(echo = TRUE, error=TRUE, message=FALSE, warning=FALSE)
+knitr::opts_chunk$set(echo = TRUE, error=TRUE, message=FALSE, warning=FALSE)
 ```
 
 ```{r libraries}
@@ -88,6 +88,8 @@ garden_harvest2 <- garden_harvest %>%
   pivot_wider(id_cols = vegetable, 
               names_from = dayOfWeek,
               values_from = weightLBs)
+
+garden_harvest2
 ```
 
   2. Summarize the `garden_harvest` data to find the total harvest in pound for each vegetable variety and then try adding the `plot` variable from the `plant_date_loc` table. This will not turn out perfectly. What is the problem? How might you fix it?
@@ -99,6 +101,8 @@ garden_harvest3 <- garden_harvest %>%
   left_join(plant_date_loc, 
             by = c("vegetable", "variety")) %>% 
   select(vegetable, weightLBs, plot, variety)
+
+garden_harvest3
 ```
 
   - The main issue with using the join is that the data becomes slightly ungrouped. 
@@ -112,14 +116,14 @@ garden_harvest3 <- garden_harvest %>%
 ```{r}
 garden_harvestT <- garden_harvest %>% 
   filter(vegetable == "tomatoes") %>% 
-  mutate(variety = fct_reorder(variety, date)) %>% 
+  mutate(variety = fct_reorder(variety, date, min)) %>% 
   group_by(variety) %>% 
   summarize(date, weightLBs = sum(weight*0.00220462))
 
 garden_harvestT %>% 
   ggplot(aes(y = variety)) + 
     geom_bar(fill = "red") + 
-    labs(title = "Total Harvest (LBs) in Order of Smallest to Largest Harvest Date",
+    labs(title = "Total Harvest (LBs) in Order of Smallest to Largest First Harvest Date",
          x = "Total Harvest (LBs)",
          y = "Variety")
 ```
@@ -129,7 +133,10 @@ garden_harvestT %>%
 ```{r}
 garden_harvest4 <- garden_harvest %>% 
   mutate(lowVariety = str_to_lower(variety), lowVarLen = str_length(lowVariety)) %>% 
-  distinct(vegetable, variety, lowVarLen) 
+  distinct(vegetable, variety, lowVarLen) %>% 
+  arrange(lowVarLen)
+
+garden_harvest4
 ```
 
   6. In the `garden_harvest` data, find all distinct vegetable varieties that have "er" or "ar" in their name. HINT: `str_detect()` with an "or" statement (use the | for "or") and `distinct()`.
@@ -261,7 +268,7 @@ Trips2 %>%
        y = "Density")
 ```
   
-  -  area under both combined is 1, showing distribution of hour for casual and registered combined, reflecting proportion of registered and casual
+  -  This shows the distribution of riders by hour for both registered and casual clients combined by stacking casual on top of registered. By doing this, the area under the two stacked density plots combined is 1. The advantage of this is that it reflects the proportion of registered and casual riders. This makes the story a bit more confusing however, because it makes it more difficult to compare the distributions to each other since when stacked, the two densities follow a very similar trend. 
   
   13. Add a new variable to the dataset called `weekend` which will be "weekend" if the day is Saturday or Sunday and  "weekday" otherwise (HINT: use the `ifelse()` function and the `wday()` function from `lubridate`). Then, update the graph from the previous problem by faceting on the new `weekend` variable. 
   
@@ -278,6 +285,8 @@ Trips2 %>%
        y = "Density")
 ```
   
+  - This plot has the same advantages and disadvantages as the last plot, where we are able to see the total distribution but not the individual trends. 
+  
   14. Change the graph from the previous problem to facet on `client` and fill with `weekday`. What information does this graph tell you that the previous didn't? Is one graph better than the other?
   
 ```{r}
@@ -290,6 +299,8 @@ Trips2 %>%
        y = "Density")
 ```
   
+  - Here, we are better able to see the individual trends of each type of rider because we have faceted by rider type. Because of this, I would consider this graph better than the previous one.
+  
 ### Spatial patterns
 
   15. Use the latitude and longitude variables in `Stations` to make a visualization of the total number of departures from each station in the `Trips` data. Use either color or size to show the variation in number of departures. We will improve this plot next week when we learn about maps!
@@ -298,9 +309,12 @@ Trips2 %>%
 Trips3 <- Trips %>% 
   rename(name = sstation)
 
-left_join(Trips3, Stations, by = "name") #%>% 
-  #ggplot(aes(x = lat, y = long)) +
-   # geom_jitter(color = name)
+Trips3 %>% 
+  left_join(Stations, by = "name") %>% 
+  group_by(name, lat, long) %>% 
+  summarize(numDep = n()) %>% 
+  ggplot(aes(x = lat, y = long, color = numDep)) +
+    geom_point()
 ```
   
   join stations and trips to have lat and lon for each trip, summarize by lat and lon, color/size by number of departures
@@ -308,30 +322,69 @@ left_join(Trips3, Stations, by = "name") #%>%
   16. Only 14.4% of the trips in our data are carried out by casual users. Create a plot that shows which area(s) have stations with a much higher percentage of departures by casual users. What patterns do you notice? (Again, we'll improve this next week when we learn about maps).
   
 ```{r}
+TripsC <- Trips %>%
+  mutate(name = sstation) %>% 
+  left_join(Stations) %>% 
+  group_by(name, long, lat) %>% 
+  filter(client == "Casual") %>% 
+  summarize(perc = (n()/nrow(Stations))*100)
 
+TripsC %>% 
+  ggplot(aes(x = long, y = lat, color = perc)) + 
+  geom_point() +
+  labs(title = "Top 10 Stations by Number of Departures",
+       x = "Count", y = "Station")
 ```
+  
+  - A large majority of the departures come from the Lincoln Memorial station and the Jefferson Dr & 14th St SW station. The other large proportions are from the Smithsonian station and the Jefferson Memorial station. These are main landmarks in DC, so this makes sense. 
   
 ### Spatiotemporal patterns
 
   17. Make a table with the ten station-date combinations (e.g., 14th & V St., 2014-10-14) with the highest number of departures, sorted from most departures to fewest. Save this to a new dataset and print out the dataset. Hint: `as_date(sdate)` converts `sdate` from date-time format to date format. 
   
 ```{r}
-
+Trips4 <- Trips %>% 
+  mutate(date = as_date(sdate)) %>% 
+  group_by(sstation, date) %>% 
+  summarize(count = n()) %>% 
+  arrange(desc(count)) %>% 
+  ungroup() %>% 
+  top_n(10, count)
+Trips4
 ```
   
   18. Use a join operation to make a table with only those trips whose departures match those top ten station-date combinations from the previous part.
   
 ```{r}
-
+Trips4 %>% 
+  mutate(sdate = as_date(date)) %>% 
+  left_join(Trips, by = "sdate")
 ```
   
   19. Build on the code from the previous problem (ie. copy that code below and then %>% into the next step.) and group the trips by client type and day of the week (use the name, not the number). Find the proportion of trips by day within each client type (ie. the proportions for all 7 days within each client type add up to 1). Display your results so day of week is a column and there is a column for each client type. Interpret your results.
+  
+```{r}
+Trips4 %>% 
+  mutate(sdate = as_date(date)) %>% 
+  left_join(Trips, 
+            by = "sdate") %>% 
+  mutate(dayOfWeek = wday(sdate, label = TRUE)) %>% 
+  group_by(client, dayOfWeek) %>% 
+  summarize(numRiders = n()) %>% 
+  mutate(totalProp = numRiders/sum(numRiders)) %>% 
+  pivot_wider(id_cols = dayOfWeek, 
+              names_from = client,
+              values_from = totalProp)
+```
+
 
 **DID YOU REMEMBER TO GO BACK AND CHANGE THIS SET OF EXERCISES TO THE LARGER DATASET? IF NOT, DO THAT NOW.**
 
 ## GitHub link
 
   20. Below, provide a link to your GitHub page with this set of Weekly Exercises. Specifically, if the name of the file is 03_exercises.Rmd, provide a link to the 03_exercises.md file, which is the one that will be most readable on GitHub.
+  
+  [link](https://github.com/alexdenzler/Denzler_03_exercises/blob/master/Denzler_03_exercises.md)
 
 ## Challenge problem! 
 
